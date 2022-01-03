@@ -67,3 +67,13 @@
       // ...
       ```
     2. `cargo run`运行,现在有了一个纯黑的窗口.
+
+附: 如果你的编辑器不能自动导入包,那么需要在`main.rs`开始添加如下代码
+``` Rust
+use amethyst::{
+    prelude::*,
+    renderer::{types::DefaultBackend, RenderToWindow, RenderingBundle},
+    window::DisplayConfig,
+    GameDataBuilder,
+};
+```

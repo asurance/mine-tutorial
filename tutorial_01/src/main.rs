@@ -1,7 +1,8 @@
 use amethyst::{
+    prelude::*,
     renderer::{types::DefaultBackend, RenderToWindow, RenderingBundle},
     window::DisplayConfig,
-    Application, GameDataBuilder, SimpleState,
+    GameDataBuilder,
 };
 
 fn main() -> amethyst::Result<()> {
