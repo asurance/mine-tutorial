@@ -32,21 +32,21 @@
       ``` Rust
       fn main() -> amethyst::Result<()> {
 
-        // amethyst日志输出
-        amethyst::start_logger(Default::default());
-        
-        // 获取资源根目录,assets目录会在之后存放图片资源
-        let app_root = amethyst::utils::application_root_dir()?;
-        let assets_root = app_root.join("assets");
+      // 配置amethyst日志输出
+      amethyst::start_logger(Default::default());
+            
+      // 资源根目录
+      let app_root = amethyst::utils::application_root_dir()?;
+      let assets_root = app_root.join("assets");
 
-        // system一类的设置,之前新建的system都会链式添加这后面
-        let game_data = GameDataBuilder::default();
+      // system的配置
+      let game_data = GameDataBuilder::default();
 
-        // 创建应用并运行
-        let mut game = Application::new(assets_root, Mine, game_data)?;
-        game.run();
+      // 创建应用并运行
+      let mut game = Application::new(assets_root, Mine, game_data)?;
+      game.run();
 
-        Ok(())
+      Ok(())
       }
       ``` 
    3. `cargo run`运行,此时会发现控制台会有amethyst自带日志信息,并且程序不会自动退出.
