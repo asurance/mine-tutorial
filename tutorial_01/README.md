@@ -26,7 +26,7 @@
    1. 创建一个`Mine`的状态
       ``` Rust
       struct Mine;
-      impl SimpleState for Mine;
+      impl SimpleState for Mine {}
       ``` 
    2. `main`函数修改
       ``` Rust
