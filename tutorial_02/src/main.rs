@@ -19,11 +19,7 @@ fn main() -> amethyst::Result<()> {
             .with_clear([0.0, 0.0, 0.0, 1.0]),
         ),
     )?;
-    let mut game = Application::new(assets_root, Mine, game_data)?;
+    let mut game = Application::new(assets_root, miner::Mine, game_data)?;
     game.run();
     Ok(())
 }
-
-struct Mine;
-
-impl SimpleState for Mine {}

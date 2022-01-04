@@ -1902,6 +1902,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "miner"
+version = "0.1.0"
+dependencies = [
+ "amethyst",
+]
+
+[[package]]
 name = "minimp3"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3664,13 +3671,6 @@ name = "tuple_utils"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44834418e2c5b16f47bedf35c28e148db099187dd5feee6367fb2525863af4f1"
-
-[[package]]
-name = "tutorial_02"
-version = "0.1.0"
-dependencies = [
- "amethyst",
-]
 
 [[package]]
 name = "twox-hash"
