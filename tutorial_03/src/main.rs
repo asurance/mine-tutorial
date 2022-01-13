@@ -31,7 +31,11 @@ fn main() -> amethyst::Result<()> {
         )?
         .with_bundle(TransformBundle::new())?
         .with_bundle(InputBundle::<StringBindings>::new())?
-        .with_bundle(UiBundle::<StringBindings>::new())?;
+        .with_bundle(UiBundle::<StringBindings>::new())?
+        .with(miner::RenderCellSystem, "render_cell_system", &[])
+        .with(miner::RenderResetBtnSystem, "render_reset_btn_system", &[])
+        .with(miner::RenderRestMineSystem, "render_rest_mine_system", &[])
+        .with(miner::RenderTimerSystem, "render_timer_system", &[]);
     let mut game = Application::new(assets_root, miner::Mine, game_data)?;
     game.run();
     Ok(())
