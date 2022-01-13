@@ -151,7 +151,7 @@ impl SimpleState for Mine {
                     };
                     for around_i in start_i..=end_i {
                         for around_j in start_j..=end_j {
-                            if around_i != i && around_j != j {
+                            if around_i != i || around_j != j {
                                 around.push(cells[around_i][around_j])
                             }
                         }
