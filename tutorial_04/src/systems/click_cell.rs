@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use amethyst::{
-    ecs::{Entity, Join, Read, System, WriteExpect, WriteStorage},
+    ecs::{Join, Read, System, WriteExpect, WriteStorage},
     prelude::*,
     shrev::{EventChannel, ReaderId},
     ui::{UiEvent, UiEventType},
@@ -51,11 +51,7 @@ impl<'s> System<'s> for ClickCellSystem {
                             let mut rng = rand::thread_rng();
                             let mut set = HashSet::new();
                             set.insert(event.target);
-                            let mut stack = cell
-                                .around
-                                .iter()
-                                .map(|entity| entity.clone())
-                                .collect::<Vec<Entity>>();
+                            let mut stack = cell.around.clone();
                             for entity in stack.iter() {
                                 set.insert(*entity);
                             }
@@ -80,22 +76,32 @@ impl<'s> System<'s> for ClickCellSystem {
                         if cell.has_mine {
                             *game_state = crate::GameState::FINISH(false);
                         } else {
-                            let mut around_count = 0;
-                            let arounds = cell
-                                .around
-                                .iter()
-                                .map(|entity| entity.clone())
-                                .collect::<Vec<Entity>>();
-                            for around in arounds {
-                                let around_cell = cells.get(around).unwrap();
-                                if around_cell.has_mine {
-                                    around_count += 1;
+                            cell.click_down = false;
+                            let mut stack = vec![event.target];
+                            let mut set = HashSet::new();
+                            set.insert(event.target);
+                            while let Some(next_entity) = stack.pop() {
+                                let next_cell = cells.get_mut(next_entity).unwrap();
+                                let mut around_count = 0;
+                                let arounds = next_cell.around.clone();
+                                for around in arounds.iter() {
+                                    let around_cell = cells.get(*around).unwrap();
+                                    if around_cell.has_mine {
+                                        around_count += 1;
+                                    }
+                                }
+                                let next_cell = cells.get_mut(next_entity).unwrap();
+                                next_cell.around_mine_count = around_count;
+                                next_cell.state = crate::CellState::SHOW;
+                                if around_count == 0 {
+                                    for around in arounds.iter() {
+                                        if !set.contains(around) {
+                                            stack.push(*around);
+                                            set.insert(*around);
+                                        }
+                                    }
                                 }
                             }
-                            let cell = cells.get_mut(event.target).unwrap();
-                            cell.around_mine_count = around_count;
-                            cell.click_down = false;
-                            cell.state = crate::CellState::SHOW;
                             self.rest_cell -= 1;
                             if self.rest_cell == 0 {
                                 *game_state = crate::GameState::FINISH(true);
