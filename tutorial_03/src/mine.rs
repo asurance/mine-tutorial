@@ -178,7 +178,6 @@ impl SimpleState for Mine {
         world.insert(crate::RestMine {
             count: crate::MINE_COUNT as i32,
         });
-        world.insert(crate::RestArea { count: 0 });
         world.insert(crate::GameTimer { timer: 0.0 });
     }
 }

@@ -13,10 +13,6 @@
        pub count: i32,  // 剩余雷数
    }
 
-   pub struct RestArea {
-       pub count: i32,  // 剩余安全区域数
-   }
-
    pub struct GameTimer {
        pub timer: f32,  // 游戏时间
    }

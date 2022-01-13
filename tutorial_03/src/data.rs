@@ -9,10 +9,6 @@ pub struct RestMine {
     pub count: i32,
 }
 
-pub struct RestArea {
-    pub count: i32,
-}
-
 pub struct GameTimer {
     pub timer: f32,
 }
