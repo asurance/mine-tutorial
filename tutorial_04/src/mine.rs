@@ -25,16 +25,19 @@ impl SimpleState for Mine {
         let number_height = crate::NUMBER_HEIGHT as f32 * dpi;
         let header_group = world
             .create_entity()
-            .with(UiTransform::new(
-                "header-group".to_string(),
-                Anchor::BottomLeft,
-                Anchor::BottomLeft,
-                0.0,
-                cell_height * crate::CELL_ROW as f32,
-                0.0,
-                cell_width * crate::CELL_COL as f32,
-                header_height,
-            ))
+            .with(
+                UiTransform::new(
+                    "header-group".to_string(),
+                    Anchor::BottomLeft,
+                    Anchor::BottomLeft,
+                    0.0,
+                    cell_height * crate::CELL_ROW as f32,
+                    0.0,
+                    cell_width * crate::CELL_COL as f32,
+                    header_height,
+                )
+                .into_transparent(),
+            )
             .build();
         world
             .create_entity()
@@ -96,16 +99,19 @@ impl SimpleState for Mine {
         }
         let cell_group = world
             .create_entity()
-            .with(UiTransform::new(
-                "cell-group".to_string(),
-                Anchor::BottomLeft,
-                Anchor::BottomLeft,
-                0.0,
-                0.0,
-                0.0,
-                cell_width * crate::CELL_COL as f32,
-                cell_height * crate::CELL_ROW as f32,
-            ))
+            .with(
+                UiTransform::new(
+                    "cell-group".to_string(),
+                    Anchor::BottomLeft,
+                    Anchor::BottomLeft,
+                    0.0,
+                    0.0,
+                    0.0,
+                    cell_width * crate::CELL_COL as f32,
+                    cell_height * crate::CELL_ROW as f32,
+                )
+                .into_transparent(),
+            )
             .build();
 
         let mut cells = vec![];
@@ -151,7 +157,7 @@ impl SimpleState for Mine {
                     };
                     for around_i in start_i..=end_i {
                         for around_j in start_j..=end_j {
-                            if around_i != i && around_j != j {
+                            if around_i != i || around_j != j {
                                 around.push(cells[around_i][around_j])
                             }
                         }
@@ -178,7 +184,6 @@ impl SimpleState for Mine {
         world.insert(crate::RestMine {
             count: crate::MINE_COUNT as i32,
         });
-        world.insert(crate::RestArea { count: 0 });
         world.insert(crate::GameTimer { timer: 0.0 });
     }
 }

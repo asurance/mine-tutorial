@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies.amethyst]
 version = "0.15"
 features = ["vulkan"]
+
+[dependencies]
+rand = "0.8"
