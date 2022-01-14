@@ -50,17 +50,25 @@ fn main() -> amethyst::Result<()> {
         .with(
             miner::UpdateTimerSystem,
             "update_timer_system",
-            &["reset_system"],
+            &[
+                "reset_system",
+                "click_reset_btn_system",
+                "click_cell_system",
+            ],
         )
         .with(
             miner::RenderCellSystem,
             "render_cell_system",
-            &["reset_system", "click_cell_system"],
+            &[
+                "reset_system",
+                "click_reset_btn_system",
+                "click_cell_system",
+            ],
         )
         .with(
             miner::RenderResetBtnSystem,
             "render_reset_btn_system",
-            &["click_reset_btn_system"],
+            &["click_reset_btn_system", "click_cell_system"],
         )
         .with(
             miner::RenderRestMineSystem,

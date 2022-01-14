@@ -1,16 +1,18 @@
-use std::collections::HashSet;
-
 use amethyst::{
-    ecs::{Join, Read, System, WriteExpect, WriteStorage},
+    core::Time,
+    ecs::{Entity, Join, Read, System, WriteExpect, WriteStorage},
     prelude::*,
     shrev::{EventChannel, ReaderId},
     ui::{UiEvent, UiEventType},
 };
 use rand::Rng;
+use std::collections::HashSet;
 
 pub struct ClickCellSystem {
     event_id: ReaderId<UiEvent>,
     rest_cell: u32,
+    timer: f32,
+    current_click: Option<Entity>,
 }
 
 impl ClickCellSystem {
@@ -18,6 +20,8 @@ impl ClickCellSystem {
         ClickCellSystem {
             event_id,
             rest_cell: 0,
+            timer: 0.0,
+            current_click: None,
         }
     }
 }
@@ -25,12 +29,32 @@ impl ClickCellSystem {
 impl<'s> System<'s> for ClickCellSystem {
     type SystemData = (
         Read<'s, EventChannel<UiEvent>>,
+        Read<'s, Time>,
+        WriteExpect<'s, crate::RestMine>,
         WriteStorage<'s, crate::Cell>,
         WriteExpect<'s, crate::GameState>,
     );
-    fn run(&mut self, (event_channel, mut cells, mut game_state): Self::SystemData) {
+    fn run(
+        &mut self,
+        (event_channel, time, mut rest_mine, mut cells, mut game_state): Self::SystemData,
+    ) {
         if let crate::GameState::FINISH(_) = *game_state {
             return;
+        }
+        if let Some(current) = self.current_click {
+            self.timer += time.delta_seconds();
+            if self.timer >= crate::FLAG_INTERVAL {
+                let cell = cells.get_mut(current).unwrap();
+                cell.click_down = false;
+                if cell.state == crate::CellState::HIDE {
+                    cell.state = crate::CellState::FLAG;
+                    rest_mine.count -= 1;
+                } else {
+                    cell.state = crate::CellState::HIDE;
+                    rest_mine.count += 1;
+                }
+                self.current_click = None;
+            }
         }
         for event in event_channel.read(&mut self.event_id) {
             if let Some(cell) = cells.get_mut(event.target) {
@@ -39,9 +63,19 @@ impl<'s> System<'s> for ClickCellSystem {
                 }
                 match event.event_type {
                     UiEventType::ClickStart => {
-                        cell.click_down = true;
+                        if cell.state == crate::CellState::HIDE {
+                            cell.click_down = true
+                        }
+                        if *game_state == crate::GameState::PLAYING {
+                            self.timer = 0.0;
+                            self.current_click = Some(event.target);
+                        }
                     }
                     UiEventType::ClickStop => {
+                        if *game_state == crate::GameState::PLAYING && self.current_click == None {
+                            continue;
+                        }
+                        self.current_click = None;
                         if *game_state == crate::GameState::READY {
                             *game_state = crate::GameState::PLAYING;
                             cell.has_mine = false;
@@ -77,8 +111,35 @@ impl<'s> System<'s> for ClickCellSystem {
                             *game_state = crate::GameState::FINISH(false);
                         } else {
                             cell.click_down = false;
-                            show_cell(event.target, &mut cells);
-                            self.rest_cell -= 1;
+                            let mut stack = vec![event.target];
+                            let mut set = HashSet::new();
+                            set.insert(event.target);
+                            while let Some(next_entity) = stack.pop() {
+                                let next_cell = cells.get_mut(next_entity).unwrap();
+                                if next_cell.state != crate::CellState::HIDE {
+                                    continue;
+                                }
+                                let mut around_count = 0;
+                                let arounds = next_cell.around.clone();
+                                for around in arounds.iter() {
+                                    let around_cell = cells.get(*around).unwrap();
+                                    if around_cell.has_mine {
+                                        around_count += 1;
+                                    }
+                                }
+                                let next_cell = cells.get_mut(next_entity).unwrap();
+                                next_cell.around_mine_count = around_count;
+                                next_cell.state = crate::CellState::SHOW;
+                                self.rest_cell -= 1;
+                                if around_count == 0 {
+                                    for around in arounds.iter() {
+                                        if !set.contains(around) {
+                                            stack.push(*around);
+                                            set.insert(*around);
+                                        }
+                                    }
+                                }
+                            }
                             if self.rest_cell == 0 {
                                 *game_state = crate::GameState::FINISH(true);
                                 for cell in (&mut cells).join() {
@@ -90,40 +151,6 @@ impl<'s> System<'s> for ClickCellSystem {
                         }
                     }
                     _ => (),
-                }
-            }
-        }
-    }
-}
-
-fn show_cell(
-    entity: Entity,
-    cells: &mut amethyst::ecs::Storage<
-        crate::Cell,
-        amethyst::shred::FetchMut<amethyst::ecs::storage::MaskedStorage<crate::Cell>>,
-    >,
-) {
-    let mut stack = vec![entity];
-    let mut set = HashSet::new();
-    set.insert(entity);
-    while let Some(next_entity) = stack.pop() {
-        let next_cell = cells.get_mut(next_entity).unwrap();
-        let mut around_count = 0;
-        let arounds = next_cell.around.clone();
-        for around in arounds.iter() {
-            let around_cell = cells.get(*around).unwrap();
-            if around_cell.has_mine {
-                around_count += 1;
-            }
-        }
-        let next_cell = cells.get_mut(next_entity).unwrap();
-        next_cell.around_mine_count = around_count;
-        next_cell.state = crate::CellState::SHOW;
-        if around_count == 0 {
-            for around in arounds.iter() {
-                if !set.contains(around) {
-                    stack.push(*around);
-                    set.insert(*around);
                 }
             }
         }

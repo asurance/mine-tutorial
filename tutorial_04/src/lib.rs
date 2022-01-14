@@ -21,3 +21,4 @@ pub const BTN_HEIGHT: u32 = 20;
 pub const NUMBER_WIDTH: u32 = 15;
 pub const NUMBER_HEIGHT: u32 = 25;
 pub const MINE_COUNT: u32 = 15;
+pub const FLAG_INTERVAL: f32 = 0.4;

@@ -253,6 +253,9 @@
             set.insert(event.target);
             while let Some(next_entity) = stack.pop() {
                 let next_cell = cells.get_mut(next_entity).unwrap();
+                if next_cell.state != crate::CellState::HIDE {
+                    continue;
+                }
                 let mut around_count = 0;
                 let arounds = next_cell.around.clone();
                 for around in arounds.iter() {
@@ -278,47 +281,133 @@
         // ..
       }
       ```
-   5. 封装展开格子逻辑
-      ``` Rust
-      // ..
-      cell.click_down = false;
-      show_cell(event.target, &mut cells);
-      self.rest_cell -= 1;
-      // ..  
+   5. 支持长按模拟右键点击插旗
+      1. `lib.rs`中添加长按时间预设值
+         ``` Rust
+         pub const FLAG_INTERVAL: f32 = 0.4;
+         ```
+      2. `ClickCellSystem`中添加计时器和当前点击实体
+         ``` Rust
+         pub struct ClickCellSystem {
+             event_id: ReaderId<UiEvent>,
+             rest_cell: u32,
+             timer: f32,
+             current_click: Option<Entity>,
+         }
 
-      fn show_cell(
-          entity: Entity,
-          cells: &mut amethyst::ecs::Storage<
-              crate::Cell,
-              amethyst::shred::FetchMut<amethyst::ecs::storage::MaskedStorage<crate::Cell>>,
-          >,
-      ) {
-          let mut stack = vec![entity];
-          let mut set = HashSet::new();
-          set.insert(entity);
-          while let Some(next_entity) = stack.pop() {
-              let next_cell = cells.get_mut(next_entity).unwrap();
-              let mut around_count = 0;
-              let arounds = next_cell.around.clone();
-              for around in arounds.iter() {
-                  let around_cell = cells.get(*around).unwrap();
-                  if around_cell.has_mine {
-                      around_count += 1;
-                  }
-              }
-              let next_cell = cells.get_mut(next_entity).unwrap();
-              next_cell.around_mine_count = around_count;
-              next_cell.state = crate::CellState::SHOW;
-              if around_count == 0 {
-                  for around in arounds.iter() {
-                      if !set.contains(around) {
-                          stack.push(*around);
-                          set.insert(*around);
-                      }
-                  }
-              }
-          }
-      }
-      ```
+         impl ClickCellSystem {
+             fn new(event_id: ReaderId<UiEvent>) -> Self {
+                 ClickCellSystem {
+                     event_id,
+                     rest_cell: 0,
+                     timer: 0.0,
+                     current_click: None,
+                 }
+             }
+         }
+         ```
+      3. `SystemData`中添加`Time`的只读访问和`RestMine`的读写访问
+      4. `run`中添加逻辑
+         ``` Rust
+         fn run(
+             &mut self,
+             (event_channel, time, mut rest_mine, mut cells, mut game_state): Self::SystemData,
+         ) {
+             if let crate::GameState::FINISH(_) = *game_state {
+                 return;
+             }
+             if let Some(current) = self.current_click {
+                 self.timer += time.delta_seconds();
+                 if self.timer >= crate::FLAG_INTERVAL {
+                     let cell = cells.get_mut(current).unwrap();
+                     cell.click_down = false;
+                     if cell.state == crate::CellState::HIDE {
+                         cell.state = crate::CellState::FLAG;
+                         rest_mine.count -= 1;
+                     } else {
+                         cell.state = crate::CellState::HIDE;
+                         rest_mine.count += 1;
+                     }
+                     self.current_click = None;
+                 }
+             }
+             for event in event_channel.read(&mut self.event_id) {
+                 if let Some(cell) = cells.get_mut(event.target) {
+                     if cell.state == crate::CellState::SHOW {
+                         return;
+                     }
+                     match event.event_type {
+                         UiEventType::ClickStart => {
+                             if cell.state == crate::CellState::HIDE {
+                                 cell.click_down = true
+                             }
+                             if *game_state == crate::GameState::PLAYING {
+                                 self.timer = 0.0;
+                                 self.current_click = Some(event.target);
+                             }
+                         }
+                         UiEventType::ClickStop => {
+                             if *game_state == crate::GameState::PLAYING && self.current_click == None {
+                                 continue;
+                             }
+                             self.current_click = None;
+                             // ..
+                         }
+                         _ => (),
+                     }
+                 }
+             }
+         }
+         ```
 5. 初始化时添加System并设定好依赖关系
-6. 这样,一款简易版的扫雷就完成了,让我们祈祷它不要出bug吧...S
+   ``` Rust
+   .with_system_desc(
+       miner::ClickResetBtnSystemDesc,
+       "click_reset_btn_system",
+       &["ui_mouse_system"],
+   )
+   .with_system_desc(
+       miner::ClickCellSystemDesc,
+       "click_cell_system",
+       &["ui_mouse_system"],
+   )
+   .with(
+       miner::ResetSystem::new(),
+       "reset_system",
+       &["click_reset_btn_system", "click_cell_system"],
+   )
+   .with(
+       miner::UpdateTimerSystem,
+       "update_timer_system",
+       &[
+           "reset_system",
+           "click_reset_btn_system",
+           "click_cell_system",
+       ],
+   )
+   .with(
+       miner::RenderCellSystem,
+       "render_cell_system",
+       &[
+           "reset_system",
+           "click_reset_btn_system",
+           "click_cell_system",
+       ],
+   )
+   .with(
+       miner::RenderResetBtnSystem,
+       "render_reset_btn_system",
+       &["click_reset_btn_system", "click_cell_system"],
+   )
+   .with(
+       miner::RenderRestMineSystem,
+       "render_rest_mine_system",
+       &["reset_system", "click_cell_system"],
+   )
+   .with(
+       miner::RenderTimerSystem,
+       "render_timer_system",
+       &["update_timer_system"],
+   )
+   ```
+6. 这样,一款简易版的扫雷就完成了,让我们祈祷它不要出bug吧...
