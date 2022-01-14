@@ -276,7 +276,49 @@
             // ..
         }
         // ..
-    }
+      }
+      ```
+   5. 封装展开格子逻辑
+      ``` Rust
+      // ..
+      cell.click_down = false;
+      show_cell(event.target, &mut cells);
+      self.rest_cell -= 1;
+      // ..  
+
+      fn show_cell(
+          entity: Entity,
+          cells: &mut amethyst::ecs::Storage<
+              crate::Cell,
+              amethyst::shred::FetchMut<amethyst::ecs::storage::MaskedStorage<crate::Cell>>,
+          >,
+      ) {
+          let mut stack = vec![entity];
+          let mut set = HashSet::new();
+          set.insert(entity);
+          while let Some(next_entity) = stack.pop() {
+              let next_cell = cells.get_mut(next_entity).unwrap();
+              let mut around_count = 0;
+              let arounds = next_cell.around.clone();
+              for around in arounds.iter() {
+                  let around_cell = cells.get(*around).unwrap();
+                  if around_cell.has_mine {
+                      around_count += 1;
+                  }
+              }
+              let next_cell = cells.get_mut(next_entity).unwrap();
+              next_cell.around_mine_count = around_count;
+              next_cell.state = crate::CellState::SHOW;
+              if around_count == 0 {
+                  for around in arounds.iter() {
+                      if !set.contains(around) {
+                          stack.push(*around);
+                          set.insert(*around);
+                      }
+                  }
+              }
+          }
+      }
       ```
 5. 初始化时添加System并设定好依赖关系
 6. 这样,一款简易版的扫雷就完成了,让我们祈祷它不要出bug吧...S
